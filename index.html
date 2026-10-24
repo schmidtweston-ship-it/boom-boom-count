@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1e2a3a">
+<meta name="description" content="Boom Boom Count — tap along to a beat that slowly changes. Rebuild rhythm and listening a little each day.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Boom Boom Count</title>
+<style>
+:root {
+  --bg: #1e2a3a;
+  --bg2: #273649;
+  --card: #31455c;
+  --card2: #3d5670;
+  --txt: #f4f0e6;
+  --dim: #a8bdd0;
+  --acc: #5ec8ff;
+  --acc2: #ffb56b;
+  --ok: #6fd9a0;
+  --warn: #ff8a7a;
+  --ink: #14202c;
+  --glow: rgba(94,200,255,.4);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 100% 70% at 50% -15%, #2f4a66 0%, transparent 55%),
+    var(--bg);
+  color: var(--txt);
+  font: 600 20px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-user-select: none; user-select: none;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+main { max-width: 520px; margin: 0 auto; padding: 18px 18px 36px; }
+h1 { font-size: clamp(2.1rem, 7.5vw, 3rem); line-height: 1.05; margin: 10px 0 6px; letter-spacing: -0.02em; }
+h2 { font-size: 1.45rem; margin: 0 0 8px; }
+.dim { color: var(--dim); font-weight: 500; }
+.center { text-align: center; }
+button {
+  display: block; width: 100%; border: 0; border-radius: 22px;
+  padding: 18px 16px; margin: 10px 0;
+  font: 800 1.15rem/1.2 system-ui, sans-serif;
+  color: var(--ink); background: var(--acc); cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .08s, filter .15s;
+}
+button:active { transform: scale(.97); }
+button:focus-visible { outline: 4px solid var(--ok); outline-offset: 3px; }
+.big {
+  font-size: clamp(1.35rem, 5vw, 1.75rem); padding: 26px 18px;
+  background: linear-gradient(145deg, var(--acc), #7a9fff);
+  box-shadow: 0 8px 28px var(--glow);
+}
+.okb { background: var(--ok); }
+.ghost { background: var(--card2); color: var(--txt); }
+.warm { background: var(--acc2); }
+.card {
+  background: var(--card); border-radius: 24px; padding: 16px 18px; margin: 12px 0;
+}
+.badge {
+  display: inline-block; background: var(--card2); color: var(--acc);
+  padding: 6px 14px; border-radius: 999px; font: 700 .85rem system-ui; margin: 4px 0;
+}
+.pulse-wrap {
+  width: min(240px, 68vw); height: min(240px, 68vw);
+  margin: 16px auto; position: relative;
+}
+.pulse {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #9ee0ff, #5ec8ff 45%, #3a7ab8 100%);
+  display: flex; align-items: center; justify-content: center;
+  font: 900 clamp(2.8rem, 12vw, 4.2rem)/1 system-ui;
+  color: var(--ink);
+  box-shadow: 0 0 0 0 var(--glow);
+  transition: transform .08s;
+}
+.pulse.hit {
+  transform: scale(1.14);
+  box-shadow: 0 0 48px 10px var(--glow);
+}
+.pulse.tap-good { box-shadow: 0 0 48px 14px rgba(111,217,160,.55); }
+.pulse.tap-ok { box-shadow: 0 0 40px 10px rgba(255,181,107,.5); }
+.pulse.tap-miss { box-shadow: 0 0 36px 8px rgba(255,138,122,.45); }
+.count-word {
+  font: 900 clamp(2.4rem, 10vw, 3.6rem)/1.1 system-ui;
+  text-align: center; margin: 6px 0; min-height: 1.2em;
+  letter-spacing: -0.02em;
+}
+.bpm {
+  font: 900 clamp(2.2rem, 9vw, 3.2rem)/1 system-ui;
+  text-align: center; margin: 4px 0;
+}
+.accuracy {
+  font: 900 clamp(2.6rem, 11vw, 3.8rem)/1 system-ui;
+  text-align: center; margin: 8px 0 2px;
+}
+.accuracy.great { color: var(--ok); }
+.accuracy.good { color: var(--acc); }
+.accuracy.ok { color: var(--acc2); }
+.accuracy.miss { color: var(--warn); }
+.dots { display: flex; justify-content: center; gap: 12px; margin: 14px 0; }
+.dot {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--card2); transition: background .1s, transform .1s;
+}
+.dot.on { background: var(--acc); transform: scale(1.15); }
+.dot.one.on { background: var(--acc2); }
+.tap-zone {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgba(30,42,58,.95) 30%);
+  z-index: 8;
+}
+.tap-btn {
+  height: 88px; margin: 0; border-radius: 28px;
+  font-size: 1.6rem; background: var(--acc2); color: var(--ink);
+  box-shadow: 0 6px 24px rgba(255,181,107,.35);
+}
+.session-pad { padding-bottom: 130px; }
+.hide { display: none !important; }
+.row { display: flex; gap: 10px; }
+.row > * { flex: 1; }
+.log {
+  background: var(--card2); border-radius: 16px; padding: 12px 14px; margin: 8px 0;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+.log strong { font-size: 1.05rem; }
+.log span { color: var(--dim); font-size: .88rem; font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.chip {
+  width: auto; margin: 0; padding: 12px 16px; font: 800 1rem system-ui;
+  border-radius: 999px; background: var(--card2); color: var(--txt);
+}
+.chip.sel { background: var(--acc); color: var(--ink); }
+footer {
+  text-align: center; color: var(--dim); font-size: .85rem;
+  font-weight: 500; margin: 32px 0 10px; line-height: 1.5;
+}
+.feedback {
+  text-align: center; min-height: 1.4em; font-size: 1.15rem; font-weight: 800;
+  margin: 4px 0 8px;
+}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+(function () {
+  const STORAGE = 'boomBoomCount.v1';
+  const WORDS = ['One', 'Two', 'Three', 'Four'];
+  // Easter egg: on beat 1 of every 8th bar, whisper "Eve" instead of "One" (family)
+  const $ = (s) => document.querySelector(s);
+  const app = $('#app');
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORAGE) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function save(d) { localStorage.setItem(STORAGE, JSON.stringify(d)); }
+  function state() {
+    const d = load();
+    if (!d.sessions) d.sessions = [];
+    if (d.speak == null) d.speak = true;
+    if (!d.difficulty) d.difficulty = 'gentle'; // gentle | steady | stretch
+    return d;
+  }
+
+  // Diff presets: start BPM, end BPM, duration seconds, beat window ms
+  const PRESETS = {
+    gentle:  { start: 72, end: 88, secs: 45, window: 140, label: 'Gentle' },
+    steady:  { start: 80, end: 100, secs: 60, window: 110, label: 'Steady' },
+    stretch: { start: 90, end: 120, secs: 75, window: 90, label: 'Stretch' }
+  };
+
+  let ac = null, master = null;
+  let running = false, schedTimer = null;
+  let session = null; // live session state
+  let uiPulse = null;
+
+  function audio() {
+    if (!ac) {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain();
+      master.gain.value = 0.6;
+      master.connect(ac.destination);
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  }
+
+  function click(t, accent) {
+    const a = audio();
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine';
+    o.frequency.value = accent ? 1320 : 880;
+    g.gain.setValueAtTime(accent ? 0.55 : 0.35, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + (accent ? 0.08 : 0.05));
+    o.connect(g).connect(master);
+    o.start(t); o.stop(t + 0.1);
+  }
+  function softKick(t) {
+    const a = audio();
+    const o = a.createOscillator(), g = a.createGain();
+    o.frequency.setValueAtTime(120, t);
+    o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
+    g.gain.setValueAtTime(0.45, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    o.connect(g).connect(master);
+    o.start(t); o.stop(t + 0.3);
+  }
+
+  function speak(word) {
+    const d = state();
+    if (!d.speak || !('speechSynthesis' in window)) return;
+    try {
+      const u = new SpeechSynthesisUtterance(word);
+      u.rate = 1.05; u.pitch = word === 'Eve' ? 1.15 : 1;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  function go(h) { location.hash = h || 'home'; }
+
+  function render() {
+    const hash = (location.hash || '#home').replace('#', '') || 'home';
+    const map = { home: viewHome, play: viewPlay, result: viewResult, history: viewHistory, about: viewAbout };
+    (map[hash] || viewHome)();
+  }
+
+  function viewHome() {
+    const d = state();
+    const last = d.sessions[0];
+    const lastLine = last
+      ? `Last: ${last.accuracy}% · ${last.preset} · ${fmtWhen(last.at)}`
+      : 'No sessions yet — tap Start when ready.';
+    const chips = Object.keys(PRESETS).map(k =>
+      `<button class="chip ${d.difficulty === k ? 'sel' : ''}" data-diff="${k}">${PRESETS[k].label}</button>`
+    ).join('');
+    app.innerHTML = `
+      <p class="badge">Rhythm · listening · daily</p>
+      <h1>Boom Boom Count</h1>
+      <p class="dim">Tap along to a steady beat that slowly changes. See how close you stayed. Rebuild a little each day.</p>
+      <div class="card">
+        <p style="margin:0 0 8px"><strong>How hard today?</strong></p>
+        <div class="chips" id="chips">${chips}</div>
+        <p class="dim" style="margin:8px 0 0" id="diffHint">${hintFor(d.difficulty)}</p>
+      </div>
+      <button class="big" id="btnStart">🥁 Start session</button>
+      <div class="row">
+        <button class="ghost" id="btnHist">History</button>
+        <button class="ghost" id="btnAbout">Why</button>
+      </div>
+      <button class="ghost" id="btnSpeak">${d.speak ? '🔊 Counting on' : '🔇 Counting off'}</button>
+      <p class="dim center" style="margin-top:16px">${lastLine}</p>
+      <footer>Built for the house. Equal always.<br>Weston &amp; Eve</footer>
+    `;
+    $('#chips').onclick = (e) => {
+      const b = e.target.closest('[data-diff]');
+      if (!b) return;
+      const s = state(); s.difficulty = b.dataset.diff; save(s);
+      viewHome();
+    };
+    $('#btnStart').onclick = () => startSession();
+    $('#btnHist').onclick = () => go('history');
+    $('#btnAbout').onclick = () => go('about');
+    $('#btnSpeak').onclick = () => {
+      const s = state(); s.speak = !s.speak; save(s); viewHome();
+    };
+  }
+
+  function hintFor(k) {
+    const p = PRESETS[k];
+    return `${p.start}→${p.end} BPM over ${p.secs}s · ±${p.window}ms window`;
+  }
+
+  function startSession() {
+    const d = state();
+    const p = PRESETS[d.difficulty] || PRESETS.gentle;
+    session = {
+      preset: p.label,
+      startBpm: p.start,
+      endBpm: p.end,
+      secs: p.secs,
+      window: p.window,
+      startedAt: Date.now(),
+      beats: [],       // { tAudio, bpm, beatInBar, bar, word }
+      taps: [],        // { tAudio, errMs, score: 'great'|'good'|'ok'|'miss' }
+      beatIndex: 0,
+      currentWord: 'One',
+      currentBeatInBar: 0,
+      lastBeatAudioTime: 0,
+      done: false
+    };
+    go('play');
+    setTimeout(() => {
+      audio();
+      runScheduler();
+    }, 60);
+  }
+
+  function bpmAt(elapsedSec) {
+    const s = session;
+    const t = Math.min(1, elapsedSec / s.secs);
+    // ease in-out
+    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    return s.startBpm + (s.endBpm - s.startBpm) * e;
+  }
+
+  function runScheduler() {
+    stopScheduler();
+    running = true;
+    const a = audio();
+    const t0 = a.currentTime + 0.12;
+    session.audioStart = t0;
+    let next = t0;
+    let i = 0;
+    let bar = 0;
+
+    function loop() {
+      if (!running || !session) return;
+      while (next < a.currentTime + 0.18) {
+        const elapsed = next - t0;
+        if (elapsed >= session.secs) {
+          finishSession();
+          return;
+        }
+        const bpm = bpmAt(elapsed);
+        const beatInBar = i % 4;
+        if (beatInBar === 0 && i > 0) bar++;
+        const eveEgg = (beatInBar === 0 && bar > 0 && bar % 8 === 0);
+        const word = eveEgg ? 'Eve' : WORDS[beatInBar];
+        const accent = beatInBar === 0;
+
+        // schedule sound
+        if (accent) softKick(next);
+        click(next, accent);
+
+        const beatRec = { tAudio: next, bpm, beatInBar, bar, word, index: i };
+        session.beats.push(beatRec);
+
+        // UI update scheduled
+        const delay = Math.max(0, (next - a.currentTime) * 1000);
+        scheduleUI(beatRec, delay);
+
+        const interval = 60 / bpm;
+        next += interval;
+        i++;
+      }
+      schedTimer = setTimeout(loop, 30);
+    }
+    loop();
+  }
+
+  function scheduleUI(beat, delay) {
+    setTimeout(() => {
+      if (!session || session.done) return;
+      session.currentWord = beat.word;
+      session.currentBeatInBar = beat.beatInBar;
+      session.lastBeatAudioTime = beat.tAudio;
+      session.beatIndex = beat.index;
+      const pulse = $('#pulse');
+      const wordEl = $('#countWord');
+      const bpmEl = $('#bpmLive');
+      const dots = document.querySelectorAll('.dot');
+      if (wordEl) wordEl.textContent = beat.word;
+      if (bpmEl) bpmEl.textContent = Math.round(beat.bpm);
+      if (pulse) {
+        pulse.classList.remove('hit');
+        void pulse.offsetWidth;
+        pulse.classList.add('hit');
+        pulse.textContent = beat.beatInBar + 1;
+      }
+      dots.forEach((d, idx) => {
+        d.classList.toggle('on', idx === beat.beatInBar);
+        d.classList.toggle('one', idx === 0);
+      });
+      speak(beat.word);
+      // progress
+      const elapsed = beat.tAudio - session.audioStart;
+      const bar = $('#pbar');
+      if (bar) bar.style.width = Math.min(100, (elapsed / session.secs) * 100) + '%';
+    }, delay);
+  }
+
+  function stopScheduler() {
+    running = false;
+    if (schedTimer) { clearTimeout(schedTimer); schedTimer = null; }
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+  }
+
+  function viewPlay() {
+    if (!session) { go('home'); return; }
+    app.className = 'session-pad';
+    app.innerHTML = `
+      <p class="dim center">${session.preset} · ${session.startBpm}→${session.endBpm} BPM</p>
+      <div class="pulse-wrap"><div class="pulse" id="pulse">1</div></div>
+      <div class="count-word" id="countWord">One</div>
+      <div class="dots">
+        <div class="dot one on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="bpm"><span id="bpmLive">${session.startBpm}</span> <span class="dim" style="font-size:1rem;font-weight:600">BPM</span></div>
+      <div class="feedback" id="feedback">&nbsp;</div>
+      <div class="card" style="padding:10px 14px">
+        <div style="height:8px;background:var(--bg2);border-radius:99px;overflow:hidden">
+          <i id="pbar" style="display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:99px"></i>
+        </div>
+      </div>
+      <div class="tap-zone">
+        <button class="tap-btn" id="btnTap">TAP</button>
+        <button class="ghost" id="btnStop" style="margin-top:8px;padding:12px;font-size:1rem">End early</button>
+      </div>
+    `;
+    const tap = () => onTap();
+    $('#btnTap').onclick = tap;
+    // also tap anywhere on pulse
+    $('#pulse').onclick = tap;
+    // space / enter
+    window._bbcKey = (e) => {
+      if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); onTap(); }
+    };
+    window.addEventListener('keydown', window._bbcKey);
+    $('#btnStop').onclick = () => finishSession();
+  }
+
+  function onTap() {
+    if (!session || session.done || !running) return;
+    const a = audio();
+    const now = a.currentTime;
+    // find nearest beat
+    let best = null, bestAbs = Infinity;
+    for (let i = session.beats.length - 1; i >= 0; i--) {
+      const b = session.beats[i];
+      const err = (now - b.tAudio) * 1000;
+      const abs = Math.abs(err);
+      if (abs < bestAbs) { bestAbs = abs; best = { beat: b, errMs: err }; }
+      // also peek one future beat if scheduled
+      if (i === session.beats.length - 1) break;
+    }
+    // check if a beat is imminent (lookahead already scheduled)
+    // Use lastBeat + estimate next from current bpm
+    if (session.lastBeatAudioTime) {
+      const bpm = bpmAt(Math.max(0, now - session.audioStart));
+      const nextEst = session.lastBeatAudioTime + 60 / bpm;
+      const errNext = (now - nextEst) * 1000;
+      if (Math.abs(errNext) < bestAbs) {
+        bestAbs = Math.abs(errNext);
+        best = { beat: null, errMs: errNext };
+      }
+    }
+    const w = session.window;
+    let score, label, cls;
+    if (bestAbs <= w * 0.35) { score = 'great'; label = 'Right on'; cls = 'tap-good'; }
+    else if (bestAbs <= w * 0.7) { score = 'good'; label = best.errMs < 0 ? 'A hair early' : 'A hair late'; cls = 'tap-good'; }
+    else if (bestAbs <= w) { score = 'ok'; label = best.errMs < 0 ? 'Early' : 'Late'; cls = 'tap-ok'; }
+    else { score = 'miss'; label = 'Missed the pocket'; cls = 'tap-miss'; }
+
+    session.taps.push({ tAudio: now, errMs: best ? best.errMs : 999, score, abs: bestAbs });
+
+    const fb = $('#feedback');
+    if (fb) fb.textContent = label;
+    const pulse = $('#pulse');
+    if (pulse) {
+      pulse.classList.remove('tap-good', 'tap-ok', 'tap-miss');
+      void pulse.offsetWidth;
+      pulse.classList.add(cls);
+      setTimeout(() => pulse.classList.remove(cls), 180);
+    }
+    // soft tap click
+    const o = a.createOscillator(), g = a.createGain();
+    o.frequency.value = score === 'miss' ? 240 : 660;
+    g.gain.setValueAtTime(0.2, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    o.connect(g).connect(master);
+    o.start(now); o.stop(now + 0.07);
+  }
+
+  function finishSession() {
+    if (!session || session.done) return;
+    session.done = true;
+    stopScheduler();
+    if (window._bbcKey) {
+      window.removeEventListener('keydown', window._bbcKey);
+      window._bbcKey = null;
+    }
+    const taps = session.taps;
+    const scored = taps.filter(t => t.score !== 'miss' || t.abs <= session.window * 2);
+    const weights = { great: 100, good: 80, ok: 55, miss: 0 };
+    let accuracy = 0;
+    if (taps.length === 0) {
+      accuracy = 0;
+    } else {
+      const sum = taps.reduce((a, t) => a + (weights[t.score] || 0), 0);
+      accuracy = Math.round(sum / taps.length);
+    }
+    const greats = taps.filter(t => t.score === 'great').length;
+    const rec = {
+      at: new Date().toISOString(),
+      preset: session.preset,
+      accuracy,
+      taps: taps.length,
+      greats,
+      startBpm: session.startBpm,
+      endBpm: session.endBpm,
+      secs: Math.round((audio().currentTime - session.audioStart) || session.secs)
+    };
+    const d = state();
+    d.sessions.unshift(rec);
+    if (d.sessions.length > 60) d.sessions = d.sessions.slice(0, 60);
+    save(d);
+    session.result = rec;
+    app.className = '';
+    go('result');
+  }
+
+  function viewResult() {
+    const r = (session && session.result) || state().sessions[0];
+    if (!r) { go('home'); return; }
+    let grade = 'miss', msg = 'Every miss is practice. Come back tomorrow.';
+    if (r.accuracy >= 90) { grade = 'great'; msg = 'Pocket locked. Your ears are waking up.'; }
+    else if (r.accuracy >= 75) { grade = 'good'; msg = 'Solid. A little closer every day.'; }
+    else if (r.accuracy >= 55) { grade = 'ok'; msg = 'You stayed with it. That counts.'; }
+    app.innerHTML = `
+      <h1 class="center">Session done</h1>
+      <div class="accuracy ${grade}">${r.accuracy}%</div>
+      <p class="dim center">how close you stayed</p>
+      <div class="card">
+        <p style="margin:0"><strong>${r.preset}</strong> · ${r.startBpm}→${r.endBpm} BPM</p>
+        <p class="dim" style="margin:8px 0 0">${r.taps} taps · ${r.greats} right on · ${r.secs}s</p>
+        <p style="margin:12px 0 0">${msg}</p>
+      </div>
+      <button class="big okb" id="btnAgain">Another round</button>
+      <button class="ghost" id="btnHome">Home</button>
+      <button class="ghost" id="btnHist">History</button>
+      <footer>Equal always.</footer>
+    `;
+    $('#btnAgain').onclick = () => startSession();
+    $('#btnHome').onclick = () => go('home');
+    $('#btnHist').onclick = () => go('history');
+  }
+
+  function viewHistory() {
+    const d = state();
+    const list = d.sessions.length
+      ? d.sessions.map(s => `
+        <div class="log">
+          <div>
+            <strong>${s.accuracy}%</strong>
+            <span> · ${s.preset} · ${s.taps} taps</span>
+          </div>
+          <span>${fmtWhen(s.at)}</span>
+        </div>`).join('')
+      : '<p class="dim center" style="padding:24px">No sessions yet.</p>';
+    app.innerHTML = `
+      <h1>History</h1>
+      <p class="dim">Kept on this phone only.</p>
+      ${list}
+      <button class="ghost" id="btnBack">Back</button>
+      ${d.sessions.length ? '<button class="ghost" id="btnClear" style="opacity:.7;font-size:1rem">Clear history</button>' : ''}
+      <footer>Equal always.</footer>
+    `;
+    $('#btnBack').onclick = () => go('home');
+    const clr = $('#btnClear');
+    if (clr) clr.onclick = () => {
+      if (confirm('Clear all session history on this phone?')) {
+        const s = state(); s.sessions = []; save(s); viewHistory();
+      }
+    };
+  }
+
+  function viewAbout() {
+    app.innerHTML = `
+      <h1>Why Boom Boom Count</h1>
+      <div class="card">
+        <p>A steady beat that slowly changes asks your ears and body to stay with it. Tapping along rebuilds rhythm and listening a little each day.</p>
+        <p>Over 5% of the world — about 430 million people — need rehab for disabling hearing loss (<a href="https://www.who.int/news-room/fact-sheets/detail/deafness-and-hearing-loss" style="color:var(--acc)">WHO</a>). This is a tiny, kind practice tool — not medical advice.</p>
+        <p class="dim" style="margin-bottom:0">Listen for the soft family wink: every so often beat one says <strong>Eve</strong> instead of One.</p>
+      </div>
+      <button class="ghost" id="btnBack">Back</button>
+      <footer>Equal always.</footer>
+    `;
+    $('#btnBack').onclick = () => go('home');
+  }
+
+  function fmtWhen(iso) {
+    try {
+      const dt = new Date(iso);
+      return dt.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    } catch (e) { return ''; }
+  }
+
+  window.addEventListener('hashchange', () => {
+    const h = (location.hash || '').replace('#', '');
+    if (h !== 'play') {
+      stopScheduler();
+      app.className = '';
+      if (window._bbcKey) {
+        window.removeEventListener('keydown', window._bbcKey);
+        window._bbcKey = null;
+      }
+    }
+    render();
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

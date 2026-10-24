@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Boom Boom Count">
+  <rect width="128" height="128" rx="28" fill="#1e2a3a"/>
+  <circle cx="64" cy="64" r="42" fill="#5ec8ff"/>
+  <circle cx="64" cy="64" r="22" fill="#1e2a3a"/>
+  <circle cx="64" cy="64" r="10" fill="#ffb56b"/>
+</svg>
